@@ -2,10 +2,11 @@
 
 class Parser:
     cells = [0]
-    sequenceIndex = 0
     cellIndex = 0
-    loopLevel = 0
     sequence = None
+    sequenceIndex = 0
+    loopStartByEnd = dict()
+    loopEndByStart = dict()
     
     actions = {
         '👉': 'nextCell',
@@ -19,6 +20,7 @@ class Parser:
     
     def __init__(self, sequence):
         self.sequence = sequence
+        self._createLoopLookups()
     
     @property
     def cell(self):
@@ -28,6 +30,16 @@ class Parser:
     def cell(self, value):
         self.cells[self.cellIndex] = value
     
+    def _createLoopLookups(self):
+        loopStartIndexes = list()
+        for i in range(0, len(self.sequence)):
+            if self.sequence[i] == '🤜':
+                loopStartIndexes.append(i)
+            elif self.sequence[i] == '🤛':
+                self.loopStartByEnd[i] = loopStartIndexes.pop()
+                self.loopEndByStart[self.loopStartByEnd[i]] = i
+                
+        
     def nextCell(self):
         if self.cellIndex == len(self.cells) - 1:
             self.cells.append(0)
@@ -46,35 +58,12 @@ class Parser:
         print(chr(self.cell), end='', flush=True)
         
     def startLoop(self):
-        self.loopLevel += 1
         if self.cell == 0:
-            self._moveToCurrentLoopEnd()
-            self.loopLevel -= 1
+            self.sequenceIndex = self.loopEndByStart[self.sequenceIndex]
     
     def endLoop(self):
         if self.cell != 0:
-            self._moveToCurrentLoopStart()
-        
-    def _moveToCurrentLoopEnd(self):
-        self._moveToSameLevelLoopLimit('🤜', '🤛', 1)
-    
-    def _moveToCurrentLoopStart(self):
-        self._moveToSameLevelLoopLimit('🤛', '🤜', -1)
-    
-    def _moveToSameLevelLoopLimit(self, startSymbol, endSymbol, step):
-        i = self.sequenceIndex
-        currentLevel = self.loopLevel
-        
-        while (True):
-            i += step
-            if self.sequence[i] == endSymbol:
-                if self.loopLevel == currentLevel:
-                    break
-                currentLevel -= 1
-            elif self.sequence[i] == startSymbol:
-                currentLevel += 1
-        
-        self.sequenceIndex = i
+            self.sequenceIndex = self.loopStartByEnd[self.sequenceIndex]  
         
     def run(self):
         while self.sequenceIndex < len(self.sequence):
@@ -84,5 +73,5 @@ class Parser:
     
 
 if __name__ == '__main__':
-    parser = Parser('👉👆👆👆👆👆👆👆👆🤜👇👈👆👆👆👆👆👆👆👆👆👉🤛👈👊👉👉👆👉👇🤜👆🤛👆👆👉👆👆👉👆👆👆🤜👉🤜👇👉👆👆👆👈👈👆👆👆👉🤛👈👈🤛👉👇👇👇👇👇👊👉👇👉👆👆👆👊👊👆👆👆👊👉👇👊👈👈👆🤜👉🤜👆👉👆🤛👉👉🤛👈👇👇👇👇👇👇👇👇👇👇👇👇👇👇👊👉👉👊👆👆👆👊👇👇👇👇👇👇👊👇👇👇👇👇👇👇👇👊👉👆👊👉👆👊')
-    parser.run()
+    with open('input.hand', 'r') as f:
+        Parser(f.read()).run()
